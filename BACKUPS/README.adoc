@@ -1,0 +1,98 @@
+= Backup and restore of data
+:hide-uri-scheme:
+// Enable keyboard macros
+:experimental:
+:toc:
+:toclevels: 4
+:icons: font
+:note-caption: ℹ️
+:tip-caption: 💡
+:warning-caption: ⚠️
+:caution-caption: 🔥
+:important-caption: ❗
+
+// cspell:ignore Tailscale dirlinks
+
+== TODO
+
+[NOTE]
+====
+This is just a small utility as a makefile with some assumptions.
+These assumptions may be wrong, just get stuff done before diving deeper into (over) engineering shell scripts, scripts or entre programs.
+One assumption is that you are running a recent GNU Linux Shell with make.
+If you are not, then you are not "my audience" and I don´t have time to fulfill all your needs.
+====
+
+.Implement backup and restore script for OS image updates
+* [ ] There shouldn't be much to back up, most settings of the app seem to be stored in browser session state or cookies.
+* [ ] Script and sync `admin` and `root` password. (Hashed in the respective files.)
+* [ ] Implement a restore function.
+* [ ] Compare `images` and `backup-YYYY-MM-DD` (today) and offer to interactively delete files not referenced in `backup-YYYY-MM-DD`. (Utilize `gum`.)
+* [x] Script to transfer and restore SSH authorized keys. (You need to have the public key on your machine in your authorized keys. I prefer to keep it simple. If this is a concern for you, then you have to roll your own.)
+* [x] Do not extract Tailscale status, onboard it as new device and replace the old.
+* [x] List content on the `/data` volume with `tree`.
+* [x] `rsync` contents. Store all images in an `images` folder, link them to a `backup-YYYY-MM-DD` (`date -I`) folder.
+
+== Rsync backup of images
+
+.What does the result look like?
+[source,bash]
+----
+# Just to provide a complete example.
+$ make create-ssh-auth
+[...]
+mode of '/root/.ssh' changed to 0700 (rwx------)
+[...]
+
+# Perform a backup.
+$ make
+mkdir: created directory 'images'
+mkdir: created directory 'backup-2024-12-10'
+PING [...] bytes of data.
+[...]
+receiving incremental file list
+./
+ubuntu-24.04-live-server-amd64.iso
+  2,754,981,888 100%    5.06MB/s    0:08:39 (xfr#2, to-chk=0/3)
+
+sent 65 bytes  received 2,755,654,701 bytes  5,294,245.47 bytes/sec
+total size is 2,754,981,888  speedup is 1.00
+'backup-2024-12-10/ubuntu-24.04-live-server-amd64.iso' -> '../images/ubuntu-24.04-live-server-amd64.iso'
+.
+├── backup-2024-12-10
+│   ├── images.txt
+│   └── ubuntu-24.04-live-server-amd64.iso -> ../images/ubuntu-24.04-live-server-amd64.iso
+├── images
+│   └── ubuntu-24.04-live-server-amd64.iso
+├── Makefile
+└── README.adoc
+
+3 directories, 6 files
+----
+
+The `images` folder is intended to serve as a cache to be cleaned up over time or used as a full archive of images.
+The `--delete` option is deliberately not used to keep previous backup intact.
+
+[NOTE]
+====
+Another option in the makefile may be introduced in the future to clean up a
+directory, but there might be a better interactive solution utilizing `gum` and
+comparing the sender and receiver side.
+See open TODO.
+====
+
+____
+Q: How can I use rsync to treat existing symlinks on the destination as files and skip copying these files when they match the source state?
+
+---
+
+A:
+
+.Options:
+* `-av --copy-links --ignore-existing` -- This works, suggested by ChatGPT.
+* `--keep-dirlinks` with `--munge-links` -- Might work
+* `--copy-unsafe-links` -- Does not work.
+* `--link-dest=$DEST` -- Does not work.
+* `--safe-links` -- Does not work.
+* SYMBOLIC LINKS section -- Implied that such a behavior might not be supported.
+____

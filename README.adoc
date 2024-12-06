@@ -1,0 +1,162 @@
+= NanoKVM Playground
+:hide-uri-scheme:
+// Enable keyboard macros
+:experimental:
+:toc:
+:toclevels: 4
+:icons: font
+:note-caption: ℹ️
+:tip-caption: 💡
+:warning-caption: ⚠️
+:caution-caption: 🔥
+:important-caption: ❗
+
+// TODO
+== TODO
+
+* Build image myself with modifications.
+** https://github.com/sipeed/NanoKVM/issues/115[] -> https://github.com/scpcom/LicheeSG-Nano-Build/tree/develop 
+** Lower Kernel allocated memory from 128MB to 96MB or 64 MB
+*** https://github.com/sipeed/NanoKVM/issues/66[]
+ -- Mentioned here that 128MB are allocated, which implies that 256MB are available on the device in total?
+    Also mentioned in Tailscale OOM kill thread.
+*** https://github.com/sipeed/NanoKVM/issues/67[]
+* Certificates: https://github.com/sipeed/NanoKVM/issues/24#issuecomment-2312440324
+** https://github.com/sipeed/NanoKVM/issues/178[Enable tailscale certificate generation]
+* https://github.com/sipeed/NanoKVM/issues/191[Correlation of Application version to GitHub releases?]
+* https://github.com/sipeed/NanoKVM/issues/158[Turn on Mouse Jiggler when Idle]
+* https://github.com/sipeed/NanoKVM/issues/90[API Documentation]
+* https://github.com/sipeed/NanoKVM/issues/82[Doc request: scripts]
+
+== Experience and Performance
+
+* Boot process takes less than one minute. ✅
++
+[%collapsible]
+====
+----
+ssh nanokvm reboot && time ping x.x.x.x
+PING nanokvm (x.x.x.x) 56(84) bytes of data.
+64 bytes from x.x.x.x: icmp_seq=1 ttl=64 time=0.373 ms
+64 bytes from x.x.x.x: icmp_seq=2 ttl=64 time=0.388 ms
+64 bytes from x.x.x.x: icmp_seq=3 ttl=64 time=0.416 ms
+64 bytes from x.x.x.x: icmp_seq=18 ttl=64 time=0.750 ms
+^C
+[...]
+real	0m20.954s
+----
+====
+
+* Don't expect high video quality _and_ high performance *while also using Tailscale*.
+  It's not there yet, it probably will never be,
+  https://github.com/lwbt/nanokvm-playground/tree/main/FFMPEG#motivation-and-observation[details].
+
+== Access
+
+* `ssh root@ip` password: `root`
+** https://wiki.sipeed.com/hardware/en/kvm/NanoKVM/system/updating.html?highlight=root#Check-via-USB-RNDIS-Network-Interface
+** SSH Keys:
++
+----
+ssh nanokvm sh -c 'mkdir -p ~/.ssh; chmod -v 700 ~/.ssh'
+ssh nanokvm sh -c 'tee > ~/.ssh/authorized_keys' < ~/.ssh/authorized_keys
+----
+* Web: `admin` PW: `admin`
+
+== Tailscale
+
+* https://github.com/sipeed/NanoKVM/issues/89[Tailscaled gets killed with OOM]
++
+[source,bash]
+----
+$ ssh nanokvm
+
+# Without Tailscale
+$ free -h
+              total        used        free      shared  buff/cache   available
+Mem:         128.1M       31.8M       47.2M       27.4M       49.1M       63.2M
+Swap:             0           0           0
+
+# With Tailscale, which consumes about 43MB according to `top`, which gets OOM killed.
+$ free -h
+              total        used        free      shared  buff/cache   available
+Mem:         128.1M       85.6M        4.7M       27.4M       37.9M        9.6M
+Swap:             0           0           0
+
+$ nproc 
+1
+
+$ cat /proc/cpuinfo 
+processor	: 0
+hart		: 0
+isa		: rv64imafdvcsu
+mmu		: sv39
+
+$ dmesg
+[    0.000000] Memory: 128512K/260096K available (5461K kernel code, 642K rwdata, 2352K rodata, 184K init, 261K bss, 131584K reserved, 0K cma-reserved)
+
+[    0.053658] Ion: ion_parse_dt_heap_common: id 0 type 2 name carveout align 1000
+[    0.054315] Ion: rmem_ion_device_init: heap carveout base 0x0000000089500000 size 0x0000000006900000 dev (____ptrval____)
+[    0.054333] ion_carveout_heap_create, size=0x6900000
+
+[    0.391451] Bluetooth: HCI device and connection manager initialized
+[    0.391469] Bluetooth: HCI socket layer initialized
+----
+
+* Issue: https://github.com/sipeed/NanoKVM/issues/149[Tailscale authentication is lost by updating the NanoKVM application] -- caused by auto-update?
+* https://github.com/sipeed/NanoKVM/issues/116[Permanently disable tailscale service]
+
+=== Updating Tailscale
+
+NOTE: `nanokvm` is an alias which I configured in my `ssh_config`. You need to use whatever you have configured or the default values.
+
+https://asciinema.org/a/wX8bY1rd6HKvzDfdWPtZQkveW[asciinema_2024-12-06_103007_nanokvm_tailscale_update.cast]
+
+[IMPORTANT]
+====
+It looks like version number 1.70 and others have been hard coded into the image or app at compile time instead of fetching the latest program version.
+
+* https://github.com/sipeed/NanoKVM/blob/main/server/service/network/tailscale.go#L71
+====
+
+[source,bash]
+----
+ssh nanokvm
+
+# Enables auto-update for future updates.
+tailscale set --auto-update
+
+# Do the update now and check that updates can be executed.
+tailscale --version
+tailscale update
+tailscale --version
+
+# Restart the service.
+/etc/init.d/S98tailscaled restart
+----
+
+== Security
+
+* EMBA scan https://github.com/lwbt/emba_20240809_NanoKVM_Rev1_2_0.img
+* The application runs as root user, don't expect a lot of security conscious design here for now.
+  I may be wrong, but I think OpenWrt and similar appliances are quite similar when it comes to
+  https://en.wikipedia.org/wiki/Principle_of_least_privilege[PoLP].
+  I should check.
+* The web interface warns you about the default password being unsafe and wants you to change it.
+  SSH access is the same, but there is no notification at all.
+** The product should not be shipped with trivial default passwords.
+** Both ways to access the product should be clearly and easily documented while using the primary way to use the product through the web interface.
+** Many users will have no idea that SSH is also running with a trivial password exploitable by malware.
+** The SSH service should be deactivated by default.
+   The service should be configurable through the web interface.
+   At worst a user can still mount the SD card with the operating system on another computer to troubleshoot access issues or reinstall the operating system.
+   Many home routers have a safer out of the box experience while not having this luxury.
+** Tailscale SSH would be a great way for secure SSH access.
++
+[quote,https://tailscale.com/blog/magicdns-why-name]
+_____
+User authentication is done by your identity provider, which prevents entire classes of attacks.
+_____
++
+Huge potential, not well executed, barley scratching at the surface of what could be possible and should be done responsibly today.
+Sorry for the strong wording, but such malpratices should not be downplayed when attacks threaten to disrupt essential services and such products can easily become part of bot nets. 

@@ -1,0 +1,34 @@
+BACKUPS/backup-*/
+BACKUPS/images/
+BACKUPS/*.iso
+FFMPEG/build/
+FFMPEG/downloads/
+FFMPEG/ffmpeg-gcc-static
+FFMPEG/ffmpeg-gcc-static.gz
+FFMPEG/riscv-gnu-toolchain/
+IMAGE/LicheeSG-Nano-Build/
+IMAGE/host-tools.tar.gz
+IMAGE/nanokvm*.tar.gz
+IMAGE/riscv-gnu-toolchain/
+IMAGE/riscv64-linux-musl-cross.tgz
+IMAGE/riscv64-linux-musl-cross/
+
+# Swap
+[._]*.s[a-v][a-z]
+!*.svg  # comment out if you don't need vector files
+[._]*.sw[a-p]
+[._]s[a-rt-v][a-z]
+[._]ss[a-gi-z]
+[._]sw[a-p]
+
+# Session
+Session.vim
+Sessionx.vim
+
+# Temporary
+.netrwhist
+*~
+# Auto-generated tag files
+tags
+# Persistent undo
+[._]*.un~
