@@ -1,4 +1,4 @@
-# cspell:ignore noreport dirsfirst nanokvm Tailscale
+# cspell:ignore noreport dirsfirst nanokvm Tailscale tailscale
 BUILD_DATE := $(shell date -I)
 BACKUP_FOLDER := backup-$(shell date -I)
 IMAGES_FOLDER := images
@@ -40,6 +40,19 @@ create-ssh-auth:
 	@ssh nanokvm 'chmod -v 700 ~/.ssh'
 	@ssh nanokvm 'tee > ~/.ssh/authorized_keys' < ~/.ssh/authorized_keys
 	@ssh nanokvm 'cat ~/.ssh/authorized_keys'
+
+# TODO: Ensure Tailscale is installed and up to date.
+.PHONY: tailscale-login
+tailscale-login:
+	@ssh nanokvm "tailscale login"
+
+# TODO: Does not work yet, returns: "sed: unmatched '/'".
+# If jq was available it would be: tailscale status -json | jq -r '.Self.DNSName'
+# https://github.com/jqlang/jq/releases/download/jq-1.7.1/jq-linux-riscv64
+# https://gist.github.com/steinwaywhw/a4cd19cda655b8249d908261a62687f8
+.PHONY: tailscale-cert
+tailscale-cert:
+	@ssh nanokvm 'tailscale cert $$(tailscale status -json | grep -e 'DNSName' | head -n1 | sed -e 's/ *"DNSName": "\(.*\)\.",$/\1/')'
 
 .PHONY: backup
 backup: backup-images
