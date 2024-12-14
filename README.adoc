@@ -11,11 +11,13 @@
 :caution-caption: 🔥
 :important-caption: ❗
 
+IMPORTANT: Use `make create-ssh-auth; make lock-ssh-auth; make lock-ssh-auth-test` from the `Makefile` in `BACKUPS` to lock down SSH.
+
 // TODO
 == TODO
 
 * Build image myself with modifications.
-** https://github.com/sipeed/NanoKVM/issues/115[] -> https://github.com/scpcom/LicheeSG-Nano-Build/tree/develop 
+** https://github.com/sipeed/NanoKVM/issues/115[] -> https://github.com/scpcom/LicheeSG-Nano-Build/tree/develop
 ** Lower Kernel allocated memory from 128MB to 96MB or 64 MB
 *** https://github.com/sipeed/NanoKVM/issues/66[]
  -- Mentioned here that 128MB are allocated, which implies that 256MB are available on the device in total?
@@ -83,10 +85,10 @@ $ free -h
 Mem:         128.1M       85.6M        4.7M       27.4M       37.9M        9.6M
 Swap:             0           0           0
 
-$ nproc 
+$ nproc
 1
 
-$ cat /proc/cpuinfo 
+$ cat /proc/cpuinfo
 processor	: 0
 hart		: 0
 isa		: rv64imafdvcsu
@@ -159,4 +161,4 @@ User authentication is done by your identity provider, which prevents entire cla
 _____
 +
 Huge potential, not well executed, barley scratching at the surface of what could be possible and should be done responsibly today.
-Sorry for the strong wording, but such malpratices should not be downplayed when attacks threaten to disrupt essential services and such products can easily become part of bot nets. 
+Sorry for the strong wording, but such malpratices should not be downplayed when attacks threaten to disrupt essential services and such products can easily become part of bot nets.

@@ -36,15 +36,25 @@ ssh-auth: create-ssh-auth
 
 .PHONY: create-ssh-auth
 create-ssh-auth:
-	@ssh nanokvm 'mkdir -p ~/.ssh'
-	@ssh nanokvm 'chmod -v 700 ~/.ssh'
-	@ssh nanokvm 'tee > ~/.ssh/authorized_keys' < ~/.ssh/authorized_keys
-	@ssh nanokvm 'cat ~/.ssh/authorized_keys'
+	@ssh $(REMOTE_HOST) 'mkdir -p ~/.ssh'
+	@ssh $(REMOTE_HOST) 'chmod -v 700 ~/.ssh'
+	@ssh $(REMOTE_HOST) 'tee ~/.ssh/authorized_keys' < ~/.ssh/authorized_keys
+
+.PHONY: lock-ssh-auth
+lock-ssh-auth:
+	@ssh $(REMOTE_HOST) 'mkdir -p /etc/ssh/sshd_config.d'
+	@ssh $(REMOTE_HOST) 'tee -a /etc/ssh/sshd_config' <<< "Include /etc/ssh/sshd_config.d/*.conf"
+	@ssh $(REMOTE_HOST) 'tee -a /etc/ssh/sshd_config.d/no-password.conf' <<< "PasswordAuthentication no"
+	@ssh $(REMOTE_HOST) reboot
+
+.PHONY: lock-ssh-auth-test
+lock-ssh-auth-test:
+	@ssh -o PubkeyAuthentication=no root@$(REMOTE_HOST) || echo "SSH password login failed."
 
 # TODO: Ensure Tailscale is installed and up to date.
 .PHONY: tailscale-login
 tailscale-login:
-	@ssh nanokvm "tailscale login"
+	@ssh $(REMOTE_HOST) "tailscale login"
 
 # TODO: Does not work yet, returns: "sed: unmatched '/'".
 # If jq was available it would be: tailscale status -json | jq -r '.Self.DNSName'
@@ -52,7 +62,7 @@ tailscale-login:
 # https://gist.github.com/steinwaywhw/a4cd19cda655b8249d908261a62687f8
 .PHONY: tailscale-cert
 tailscale-cert:
-	@ssh nanokvm 'tailscale cert $$(tailscale status -json | grep -e 'DNSName' | head -n1 | sed -e 's/ *"DNSName": "\(.*\)\.",$/\1/')'
+	@ssh $(REMOTE_HOST) 'tailscale cert $$(tailscale status -json | grep -e 'DNSName' | head -n1 | sed -e 's/ *"DNSName": "\(.*\)\.",$/\1/')'
 
 .PHONY: backup
 backup: backup-images
